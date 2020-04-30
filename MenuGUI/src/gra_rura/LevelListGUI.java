@@ -102,8 +102,8 @@ public class LevelListGUI extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO add your handling code here:
-        //przekierowanie do poziomu 1
+        this.dispose();
+        new Level1().setVisible(true);
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
