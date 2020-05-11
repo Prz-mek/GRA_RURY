@@ -75,7 +75,7 @@ public class Board extends JFrame {
 
     public int SaveToFile(String s, boolean override) {
         try {
-            if (s.length() == 0 && override == false) {
+            if (s.isBlank() && override == false) {
                 return 2;
             }
             File file;
@@ -104,8 +104,11 @@ public class Board extends JFrame {
         return 0;
     }
 
-    public ImageIcon ChooseIcon(String s) {
+    private ImageIcon ChooseIcon(String s) {
         if (s == null) {
+            return null;
+        }
+        else if (s.equals("empty")) {
             return null;
         }
         return new ImageIcon("src/icons/" + s + ".png");
@@ -258,7 +261,7 @@ public class Board extends JFrame {
         return null;
     }
 
-    public boolean CheckIfFinished() {
+    private boolean CheckIfFinished() {
         var start = ScanBoard();
         int prex = -1, prey = -1;
         if (start == null) {
@@ -409,10 +412,6 @@ public class Board extends JFrame {
         } else {
             squares[1][w].setIcon(ChooseIcon("1turnLU"));
         }
-    }
-    
-    private void CheckIfNullTimer() {
-        
     }
     
     private void processClick(int i, int j) {
