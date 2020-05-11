@@ -1,10 +1,11 @@
 package board;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import javax.swing.*;
 import java.util.Scanner;
@@ -13,47 +14,83 @@ import java.util.TimerTask;
 import static javax.swing.SwingConstants.CENTER;
 
 public class Board extends JFrame {
-    int sx, sy, ex, ey; //punkt startowy, punkt końcowy (górny lewy róg to 0,0)
-    int w = 0, h = 0;
-    int[][] set;
-    int now = 0;
-    
+
+    int w = 0, h = 0;   //width and height of board
+    int[][] set;        //array containing information what is where on the board
+    int now = 0;        //currently selected pipe
+    Tile[][] tile;     //array with all tile
+    Types type;
+    int[] pipecount;    //how many pipes are available (pipe, turn)
+
     private JPanel grid;
     private JPanel select;
     private JPanel menu;
-    
+    private JLabel[] labels;
+
     private JButton[][] squares;
-    
+
     //skróty oznaczają punkty zetknięcia rury z ramką pola; LR = left right, LD = left down
-    private ImageIcon pipeLR = new ImageIcon("src/icons/rura.png");
-    private ImageIcon pipeLD = new ImageIcon("src/icons/rurzysko.png");
-    private ImageIcon pipeUD = new ImageIcon("src/icons/rurek.png");
-    private ImageIcon pipeRD = new ImageIcon("src/icons/opadła.png");
-    private ImageIcon pipeLU = new ImageIcon("src/icons/obrócona.png");
-    private ImageIcon pipeRU = new ImageIcon("src/icons/wznosząca.png");
-    
+    //Litery posortowane są alfabetycznie, umiejscowione z tyu by nie myli z typami
     ButtonHandler buttonHandler = new ButtonHandler();
-    
-    private void SaveLevel() {
-        Scanner sc = new Scanner(System.in);
+
+    private void LoadLevel(String f) {
         try {
-            File file;
-            do {
-                System.out.println("What should the save be called?\n");
-                file = new File("src/saves/" + sc.next() + ".txt");
-                if (file.exists()) {
-                    System.out.println("Do you wish to this save? Type \"yes\" to confirm.");
-                    if (sc.next().equals("yes")) {
-                        break;
-                    }
+            File in = new File(f);
+            Scanner sc = new Scanner(in);
+            String tmp = "";
+            int id = 0;
+            pipecount = new int[2];
+            while (sc.hasNextInt()) {
+                try {
+                    pipecount[id] = sc.nextInt();
+                    id++;
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    System.out.println("Too many numbers!");
+                    break;
                 }
-            } while (file.exists());
-                
+            }
+            sc.nextLine();
+            while (sc.hasNext()) {
+                h++;
+                tmp = sc.nextLine();
+            }
+            w = tmp.length();
+            if (h == 0) {
+                System.out.println("Zapis jest pusty.");
+            }
+            sc = new Scanner(in);
+            sc.nextLine();
+            set = new int[h][w];
+            for (int i = 0; i < h; i++) {
+                tmp = sc.next();
+                for (int j = 0; j < w; j++) {
+                    set[i][j] = tmp.charAt(j) - 'a';
+                }
+            }
+            sc.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("Level loading error.");
+        }
+    }
+
+    public int SaveToFile(String s, boolean override) {
+        try {
+            if (s.length() == 0 && override == false) {
+                return 2;
+            }
+            File file;
+            file = new File("src/saves/" + s + ".txt");
+            if (file.exists() && override == false) {
+                return 1;
+            }
+            file.delete();
+            file.createNewFile();
             FileWriter save = new FileWriter(file.getAbsoluteFile());
             PrintWriter pw = new PrintWriter(save);
             for (int i = 0; i < h; i++) {
                 for (int j = 0; j < w; j++) {
-                    pw.print(set[i][j]);
+                    int c = 'a' + set[i][j];
+                    pw.print((char) c);
                     if (j + 1 == w) {
                         pw.print("\n");
                     }
@@ -61,191 +98,288 @@ public class Board extends JFrame {
             }
             pw.close();
             save.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("The file couldn't be created.");
         }
+        return 0;
     }
-    
-    private void LoadLevel(String f) {
-        try {
-        File in = new File(f);
-        Scanner sc = new Scanner(in);
-        String tmp = "";
-        while(sc.hasNext()) {
-            h++;
-            tmp = sc.nextLine();
+
+    public ImageIcon ChooseIcon(String s) {
+        if (s == null) {
+            return null;
         }
-        w = tmp.length();
-        if (h == 0) {
-            System.out.println("Zapis jest pusty.");
-        }
-        sc = new Scanner(in);
-        set = new int[h][w];
-        for (int i = 0; i < h; i++) {
-            tmp = sc.next();
-            for (int j = 0; j < w; j++) {
-                set[i][j] = tmp.charAt(j) - '0';
-            }
-        }
-        sc.close();
-        }
-        catch (FileNotFoundException e) {
-            System.out.println("Level loading error.");
-        }
+        return new ImageIcon("src/icons/" + s + ".png");
     }
-    
-    private void ChooseIcon(int n, int i, int j) {
-        switch (n) {
-            case 0: break;
-            case 1: squares[i][j].setBackground(Color.BLACK); break;
-            case 2: squares[i][j].setIcon(pipeLR); break;
-            case 3: squares[i][j].setIcon(pipeUD); break;
-            case 4: squares[i][j].setIcon(pipeRU); break;
-            case 5: squares[i][j].setIcon(pipeLU); break;
-            case 6: squares[i][j].setIcon(pipeLD); break;
-            case 7: squares[i][j].setIcon(pipeRD); break;
-        }
-    }
-    
-    public static void main(String[] arg) {
-        new Board("src/levels/Level1.txt");
-    }
-    
-    int seconds = 0, minutes = 0;
-    String time;
-    
+
     private JLabel initLabel(String ch) {   //standard label format
         JLabel init = new JLabel();
         init.setBackground(Color.WHITE);
-        init.setPreferredSize(new Dimension (60, 60));
+        init.setPreferredSize(new Dimension(60, 60));
         init.setText(ch);
         init.setOpaque(true);
         init.setHorizontalAlignment(CENTER);
         init.setBorder(BorderFactory.createLineBorder(new JButton().getBackground(), 1, true));
         return init;
     }
-    
+
+    int seconds = 0, minutes = 0;
+    String time;
+    Timer timer;
+
+    private JLabel initTimer() {
+        JLabel Stopwatch = initLabel("0");
+        timer = new Timer(true);
+        TimerTask task = new TimerTask() {
+            public void run() {
+                seconds++;
+                if (seconds > 59) {
+                    seconds %= 60;
+                    minutes++;
+                }
+                if (minutes > 59) {
+                    timer.cancel();
+                } else if (minutes < 10 && seconds < 10) {
+                    time = ("0" + minutes + ":0" + seconds);
+                } else if (minutes < 10) {
+                    time = ("0" + minutes + ":" + seconds);
+                } else if (seconds < 10) {
+                    time = (minutes + ":0" + seconds);
+                } else {
+                    time = (minutes + ":" + seconds);
+                }
+                Stopwatch.setText(time);
+            }
+        };
+        timer.scheduleAtFixedRate(task, 0, 1000);
+        return Stopwatch;
+    }
+
+    private void GenerateTiles() {
+        tile = new Tile[h][w];
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                tile[i][j] = new Tile(type.type[set[i][j]]);
+                tile[i][j].x = j;
+                tile[i][j].y = i;
+            }
+        }
+    }
+
     public Board(String f) {
         super("Pipe Game");
+        type = new Types();
         LoadLevel(f);
-        squares = new JButton[h+1][w+1];
+        GenerateTiles();
+        squares = new JButton[h + 1][w + 1];
+        labels = new JLabel[3];
         select = new JPanel();
-        select.setLayout(new GridLayout(h,2));
+        select.setLayout(new GridLayout(h, 2));
         select.setBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, Color.BLACK));
         grid = new JPanel();
-        grid.setLayout(new GridLayout(h,w));
+        grid.setLayout(new GridLayout(h, w));
         grid.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 2, new JButton().getBackground()));
         menu = new JPanel();
-        menu.setLayout(new GridLayout(1,3));
+        menu.setLayout(new GridLayout(1, 3));
         menu.setBorder(BorderFactory.createMatteBorder(3, 0, 0, 0, Color.BLACK));
 
         for (int i = 0; i < h + 1; i++) {
             for (int j = 0; j < w + 1; j++) {
-                int proxy = -1;
+                String name = null;
                 squares[i][j] = new JButton();
                 squares[i][j].setBackground(Color.WHITE);
                 squares[i][j].addActionListener(buttonHandler);
-                squares[i][j].setPreferredSize(new Dimension (60, 60));
+                squares[i][j].setPreferredSize(new Dimension(60, 60));
                 if (i == h) {
                     menu.add(squares[i][j]);
-                    squares[i][j].setPreferredSize(new Dimension (0, 20));
+                    squares[i][j].setPreferredSize(new Dimension(0, 20));
                     switch (j) {
-                        case 0: squares[i][j].setText("Save Game"); break;
-                        case 1: menu.remove(squares[i][j]);
-                        JLabel Stopwatch = initLabel("0");
-                        Timer timer = new Timer(true);
-                        TimerTask task = new TimerTask() {
-                            public void run() {
-                                seconds++;
-                                if (seconds > 59) {
-                                    seconds %= 60;
-                                    minutes++;
-                                }
-                                if (minutes > 59)
-                                    timer.cancel();
-                                else if (minutes < 10 && seconds < 10)
-                                    time = ("0" + minutes + ":0" + seconds);
-                                else if (minutes < 10)
-                                    time = ("0" + minutes + ":" + seconds);
-                                else if (seconds < 10)
-                                    time = (minutes + ":0" + seconds);
-                                else
-                                    time = (minutes + ":" + seconds);
-                                Stopwatch.setText(time);
-                            }
-                        };
-                        timer.scheduleAtFixedRate(task, 0, 1000);
-                        menu.add(Stopwatch); break;
-                        case 2: squares[i][j].setText("Quit to menu"); j = w;
+                        case 0:
+                            squares[i][j].setText("Save Game");
+                            break;
+                        case 1:
+                            menu.remove(squares[i][j]);
+                            menu.add(initTimer());
+                            break;
+                        case 2:
+                            squares[i][j].setText("Quit to menu");
+                            j = w;
+                    }
+                    continue;
+                } else if (j < w) {
+                    grid.add(squares[i][j]);
+                    name = type.type[set[i][j]];
+                } else if (j == w && i < 3) {
+                    if (i == 2) {
+                        labels[i] = initLabel(Character.toString('X'));
+                    } else {
+                        labels[i] = initLabel(Character.toString(pipecount[i] + '0'));
+                    }
+                    select.add(labels[i]);
+                    select.add(squares[i][j]);
+                    switch (i) {
+                        case 0:
+                            name = "1pipeLR";
+                            break;
+                        case 1:
+                            name = "1turnLU";
+                            break;
+                        case 2:
+                            name = "eraser";
+                            break;
                     }
                 }
-                else if (j < w) {
-                    grid.add(squares[i][j]);
-                    proxy = set[i][j];
-                }
-                else if (j == w){
-                    select.add(initLabel("1"));
-                    select.add(squares[i][j]);
-                    proxy = i + 2;
-                }
-                ChooseIcon(proxy, i, j);
+                squares[i][j].setIcon(ChooseIcon(name));
             }
         }
-        
+
+        checkIfNull();
         getContentPane().add(grid, BorderLayout.CENTER);
         getContentPane().add(menu, BorderLayout.SOUTH);
         getContentPane().add(select, BorderLayout.EAST);
-        setSize(60*(w+3),60*(h+1));
+        setSize(60 * (w + 3), 60 * (h + 1));
         setResizable(false);
         setLocationRelativeTo(null);
         setVisible(true);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         pack();
     }
-    
+
+    private int[] ScanBoard() {
+        int[] tmp = new int[2];
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if (tile[i][j].type.contains("start")) {
+                    tmp[0] = j;
+                    tmp[1] = i;
+                    return tmp;
+                }
+            }
+        }
+        return null;
+    }
+
+    public boolean CheckIfFinished() {
+        var start = ScanBoard();
+        int prex = -1, prey = -1;
+        if (start == null) {
+            System.out.println("Error. This level doesn't have a start!");
+            return false;
+        }
+        int x = start[0], y = start[1];
+        int error = 0;
+        while (true) {
+            error++;
+            if (error > 50) {
+                System.out.println("Zapobiegam nieskończonej pętli.");
+                return false;
+            }
+            if (tile[y][x].type.contains("finish")) {
+                return true;
+            } else if (prex != x + 1 && x + 1 < w && tile[y][x].IsConnectedTo(tile[y][x + 1])) {
+                prex = x;
+                prey = y;
+                x++;
+            } else if (prey != y + 1 && y + 1 < h && tile[y][x].IsConnectedTo(tile[y + 1][x])) {
+                prex = x;
+                prey = y;
+                y++;
+            } else if (prex != x - 1 && x - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y][x - 1])) {
+                prex = x;
+                prey = y;
+                x--;
+            } else if (prey != y - 1 && y - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y - 1][x])) {
+                prex = x;
+                prey = y;
+                y--;
+            } else {
+                return false;
+            }
+        }
+    }
+
     private void GoToMenu() {
         this.dispose();
         new menu.MenuGUI().setVisible(true);
     }
 
+    private void Rotate(Tile t) {
+        String s = null;
+        switch (t.type) {
+            case "1pipeLR":
+                s = "1pipeDU";
+                break;
+            case "1pipeDU":
+                s = "1pipeLR";
+                break;
+            case "1turnDL":
+                s = "1turnLU";
+                break;
+            case "1turnLU":
+                s = "1turnRU";
+                break;
+            case "1turnRU":
+                s = "1turnDR";
+                break;
+            case "1turnDR":
+                s = "1turnDL";
+        }
+        int x = t.x, y = t.y;
+        t = new Tile(s);
+        t.x = x;
+        t.y = y;
+        tile[y][x] = t;
+        squares[y][x].setIcon(ChooseIcon(s));
+    }
+
+    private Board ReturnBoard() {
+        return this;
+    }
+
     private class ButtonHandler implements ActionListener {
+
         public void actionPerformed(ActionEvent e) {
             Object source = e.getSource();
-        
             for (int i = 0; i < h + 1; i++) {
                 for (int j = 0; j < w + 1; j++) {
                     if (source == squares[i][j]) {
                         if (i == h) {
                             if (j == 0) {
-                                SaveLevel();
-                            }
-                            else {
+                                new Popup("What should the savefile be called?").SavePopup(ReturnBoard());
+                            } else {
                                 GoToMenu();
                             }
                             return;
-                        }
-                        else if (j < w) {
-                            processClick(i,j);
+                        } else if (j < w) {
+                            processClick(i, j);
                             return;
-                        }
-                        else {
+                        } else {
                             for (int k = 0; k < h; k++) {
                                 if (k == i) {
                                     if (squares[k][j].getBackground() == Color.WHITE) {
                                         squares[k][j].setBackground(Color.YELLOW);
-                                    }
-                                    else {
+                                        switch (k) {
+                                            case 0:
+                                                now = type.GetIndex("1pipeLR");
+                                                break;
+                                            case 1:
+                                                now = type.GetIndex("1turnLU");
+                                                break;
+                                            case 2:
+                                                now = type.GetIndex("eraser");
+                                                break;
+                                            default:
+                                                now = type.GetIndex("empty");
+                                                break;
+                                        }
+                                    } else {
                                         squares[k][j].setBackground(Color.WHITE);
-                                        now = 0;
+                                        now = type.GetIndex("empty");
                                         return;
                                     }
-                                }
-                                else {
+                                } else {
                                     squares[k][j].setBackground(Color.WHITE);
                                 }
                             }
-                            now = i + 2;
                             return;
                         }
                     }
@@ -253,11 +387,71 @@ public class Board extends JFrame {
             }
         }
     }
+
+    private void updateSet(String s, int i, int j) {
+        int n = type.GetIndex(s);
+        set[i][j] = n;
+        squares[i][j].setIcon(ChooseIcon(type.type[n]));
+        tile[i][j] = new Tile(type.type[n]);
+        tile[i][j].x = j;
+        tile[i][j].y = i;
+    }
+
+    private void checkIfNull() {
+        if (pipecount[0] == 0) {
+            squares[0][w].setIcon(null);
+        } else {
+            squares[0][w].setIcon(ChooseIcon("1pipeLR"));
+        }
+        
+        if (pipecount[1] == 0) {
+            squares[1][w].setIcon(null);
+        } else {
+            squares[1][w].setIcon(ChooseIcon("1turnLU"));
+        }
+    }
+    
+    private void CheckIfNullTimer() {
+        
+    }
     
     private void processClick(int i, int j) {
-        if (set[i][j] == 0 && now != 0) {
-            set[i][j] = now;
-            ChooseIcon(now, i, j);
+        if (type.type[now].equals("eraser") && tile[i][j].type.contains("1") == true) {
+            if (tile[i][j].type.contains("pipe"))
+                pipecount[0]++;
+            else if (tile[i][j].type.contains("turn"))
+                pipecount[1]++;
+            updateSet("empty", i, j);
+        }
+        labels[0].setText(Character.toString(pipecount[0] + '0'));
+        labels[1].setText(Character.toString(pipecount[1] + '0'));
+        checkIfNull();
+        
+        if (tile[i][j].type.charAt(0) == '1' && now != type.GetIndex("eraser")) {
+            Rotate(tile[i][j]);
+        } else if (set[i][j] == type.GetIndex("empty") && now != type.GetIndex("empty")) {
+            if (pipecount[0] > 0 && type.type[now].contains("pipe")) {
+                pipecount[0]--;
+                labels[0].setText(Character.toString(pipecount[0] + '0'));
+            } else if (pipecount[1] > 0 && type.type[now].contains("turn")) {
+                pipecount[1]--;
+                labels[1].setText(Character.toString(pipecount[1] + '0'));
+            } else {
+                return;
+            }
+            updateSet(type.type[now], i, j);
+        }
+        checkIfNull();
+        
+        if (CheckIfFinished()) {
+            timer.cancel();
+            int time = minutes * 60 + seconds;
+            menu.LevelListGUI menu = new menu.LevelListGUI();
+            menu.setVisible(true);
+            menu.setAlwaysOnTop(false);
+            Popup tmp = new Popup("Congratulations! You have completed the level!");
+            tmp.setVisible(true);
+            this.dispose();
         }
     }
 }
