@@ -152,14 +152,12 @@ public class MenuGUI extends javax.swing.JFrame {
         // TODO add your handling code here:
         this.dispose();
         Scrollable l = new Scrollable();
+        l.pl = p;
         l.loadSaves(true);
         l.setVisible(true);
-        l.pl = p;
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO add your handling code here:
-        //new NoSaves().setVisible(true);
         this.dispose();
         Scrollable l = new frames.Scrollable();
         l.pl = p;

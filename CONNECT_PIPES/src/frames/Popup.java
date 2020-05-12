@@ -50,6 +50,7 @@ public class Popup extends JFrame {
 
         getContentPane().add(main, BorderLayout.NORTH);
         getContentPane().add(south, BorderLayout.SOUTH);
+        setAlwaysOnTop(true);
         setSize(400, 200);
         setResizable(false);
         setLocationRelativeTo(null);

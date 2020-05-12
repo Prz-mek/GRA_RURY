@@ -111,8 +111,14 @@ public class Scrollable extends JFrame {
     public void loadSaves(boolean levels) {
         File[] loads = levels ? new File("src/levels/").listFiles() : new File("src/saves/").listFiles();
         if (loads.length == 0 && levels == false) {
-            new NoSaves();
-            this.dispose();
+            MenuGUI it = new MenuGUI();
+            it.setVisible(true);
+            it.p = pl;
+            NoSaves le = new NoSaves();
+            le.setVisible(true);
+            le.setAlwaysOnTop(true);
+            close();
+            return;
         }
         type = levels ? "level" : "save";
         buttons = new JButton[loads.length];
@@ -120,7 +126,10 @@ public class Scrollable extends JFrame {
             buttons[i] = new JButton(Types.GetName(loads[i]));
             buttons[i].addActionListener(buttonHandler);
             buttons[i].setPreferredSize(new Dimension(200, 50));
-            buttons[i].setBackground(Color.CYAN);
+            if (levels && pl.getLevel() < Types.GetName(loads[i]).charAt(5) - '0')
+                buttons[i].setBackground(Color.GRAY);
+            else
+                buttons[i].setBackground(Color.CYAN);
             main.add(buttons[i]);
         }
         this.revalidate();
@@ -158,6 +167,14 @@ public class Scrollable extends JFrame {
                 main.add(buttons[i]);
                 i++;
             }
+            cancel.removeActionListener(buttonHandler);
+            cancel.addActionListener(new AbstractAction() {
+                public void actionPerformed(ActionEvent e) {
+                    close();
+                    Menu m = new Menu();
+                    m.setVisible(true);
+                } 
+            });
         } catch (IOException err) {
             return;
         }
@@ -210,7 +227,9 @@ public class Scrollable extends JFrame {
                 }
             }
             if (source == cancel) {
-                new menu.MenuGUI().setVisible(true);
+                MenuGUI men = new MenuGUI();
+                men.setVisible(true);
+                men.p = pl;
             }
             close();
         }

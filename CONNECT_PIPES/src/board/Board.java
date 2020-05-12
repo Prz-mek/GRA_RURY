@@ -185,7 +185,7 @@ public class Board extends JFrame {
         LoadLevel(f);
         GenerateTiles();
         squares = new JButton[h + 1][w + 1];
-        labels = new JLabel[3];
+        labels = new JLabel[h];
         select = new JPanel();
         select.setLayout(new GridLayout(h, 2));
         select.setBorder(BorderFactory.createMatteBorder(0, 3, 0, 0, Color.BLACK));
@@ -222,11 +222,19 @@ public class Board extends JFrame {
                 } else if (j < w) {
                     grid.add(squares[i][j]);
                     name = type.type[set[i][j]];
-                } else if (j == w && i < 3) {
+                } else if (j == w) {
                     if (i == 2) {
                         labels[i] = initLabel(Character.toString('X'));
+                    } else if (i < 2) {
+                        labels[i] = initLabel(Integer.toString(pipecount[i]));
                     } else {
-                        labels[i] = initLabel(Character.toString(pipecount[i] + '0'));
+                        labels[i] = initLabel(null);
+                        labels[i].setOpaque(false);
+                        select.add(labels[i]);
+                        labels[i] = initLabel(null);
+                        labels[i].setOpaque(false);
+                        select.add(labels[i]);
+                        continue;
                     }
                     select.add(labels[i]);
                     select.add(squares[i][j]);
@@ -239,7 +247,6 @@ public class Board extends JFrame {
                             break;
                         case 2:
                             name = "eraser";
-                            break;
                     }
                 }
                 squares[i][j].setIcon(ChooseIcon(name));
@@ -437,8 +444,8 @@ public class Board extends JFrame {
             }
             updateSet("empty", i, j);
         }
-        labels[0].setText(Character.toString(pipecount[0] + '0'));
-        labels[1].setText(Character.toString(pipecount[1] + '0'));
+        labels[0].setText(Integer.toString(pipecount[0]));
+        labels[1].setText(Integer.toString(pipecount[1]));
         checkIfNull();
 
         if (tile[i][j].type.charAt(0) == '1' && now != type.GetIndex("eraser")) {
@@ -446,10 +453,10 @@ public class Board extends JFrame {
         } else if (set[i][j] == type.GetIndex("empty") && now != type.GetIndex("empty")) {
             if (pipecount[0] > 0 && type.type[now].contains("pipe")) {
                 pipecount[0]--;
-                labels[0].setText(Character.toString(pipecount[0] + '0'));
+                labels[0].setText(Integer.toString(pipecount[0]));
             } else if (pipecount[1] > 0 && type.type[now].contains("turn")) {
                 pipecount[1]--;
-                labels[1].setText(Character.toString(pipecount[1] + '0'));
+                labels[1].setText(Integer.toString(pipecount[1]));
             } else {
                 return;
             }
@@ -477,12 +484,12 @@ public class Board extends JFrame {
             } catch (IOException err) {
                 return;
             }
-            menu.LevelListGUI menu = new menu.LevelListGUI();
-            menu.setVisible(true);
-            menu.setAlwaysOnTop(false);
-            menu.p = player;
+            frames.Scrollable menu = new frames.Scrollable();
+            menu.pl = player;
+            menu.loadSaves(true);
             Popup tmp = new Popup("Congratulations! You have completed the level!");
             tmp.setVisible(true);
+            tmp.setAlwaysOnTop(true);
             this.dispose();
         }
     }
