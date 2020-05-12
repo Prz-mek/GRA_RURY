@@ -48,15 +48,19 @@ public class Board extends JFrame {
             String tmp = null;
             pipecount = new int[2];
             pipecount[0] = sc.nextInt();
-            if (sc.hasNextInt()) 
+            if (sc.hasNextInt()) {
                 pipecount[1] = sc.nextInt();
-            else
+            } else {
                 pipecount[1] = 0;
-            if (sc.hasNextInt()) time = sc.nextInt();
-            if (in.getAbsolutePath().contains("src\\levels\\"))
+            }
+            if (sc.hasNextInt()) {
+                time = sc.nextInt();
+            }
+            if (in.getAbsolutePath().contains("src\\levels\\")) {
                 nextLevel = in.getName().charAt(5) - '0' + 1;
-            else
+            } else {
                 nextLevel = sc.nextInt();
+            }
             sc.nextLine();
             while (sc.hasNext()) {
                 h++;
@@ -143,9 +147,9 @@ public class Board extends JFrame {
         TimerTask task = new TimerTask() {
             public void run() {
                 time++;
-                int minutes = time/60;
-                int seconds = time%60;
-                
+                int minutes = time / 60;
+                int seconds = time % 60;
+
                 if (seconds > 59) {
                     seconds %= 60;
                     minutes++;
@@ -178,7 +182,7 @@ public class Board extends JFrame {
             }
         }
     }
-    
+
     public Board(String f) {
         super("Pipe Game");
         type = new Types();
@@ -265,18 +269,19 @@ public class Board extends JFrame {
         pack();
     }
 
-    private int[] ScanBoard() {
-        int[] tmp = new int[2];
+    private int[][] ScanBoard() {
+        int[][] tmp = new int[4][2];
+        int cur = 0;
         for (int i = 0; i < h; i++) {
             for (int j = 0; j < w; j++) {
                 if (tile[i][j].type.contains("start")) {
-                    tmp[0] = j;
-                    tmp[1] = i;
-                    return tmp;
+                    tmp[cur][0] = j;
+                    tmp[cur][1] = i;
+                    cur++;
                 }
             }
         }
-        return null;
+        return tmp;
     }
 
     private boolean CheckIfFinished() {
@@ -286,36 +291,40 @@ public class Board extends JFrame {
             System.out.println("Error. This level doesn't have a start!");
             return false;
         }
-        int x = start[0], y = start[1];
-        int error = 0;
-        while (true) {
-            error++;
-            if (error > 50) {
-                System.out.println("Zapobiegam nieskończonej pętli.");
-                return false;
-            }
-            if (tile[y][x].type.contains("finish")) {
-                return true;
-            } else if (prex != x + 1 && x + 1 < w && tile[y][x].IsConnectedTo(tile[y][x + 1])) {
-                prex = x;
-                prey = y;
-                x++;
-            } else if (prey != y + 1 && y + 1 < h && tile[y][x].IsConnectedTo(tile[y + 1][x])) {
-                prex = x;
-                prey = y;
-                y++;
-            } else if (prex != x - 1 && x - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y][x - 1])) {
-                prex = x;
-                prey = y;
-                x--;
-            } else if (prey != y - 1 && y - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y - 1][x])) {
-                prex = x;
-                prey = y;
-                y--;
-            } else {
-                return false;
+        for (int[] point : start) {
+            int x = point[0], y = point[1];
+            int error = 0;
+            boolean next = false;
+            while (!next) {
+                error++;
+                if (error > 50) {
+                    System.out.println("Zapobiegam nieskończonej pętli.");
+                    return false;
+                }
+                if (tile[y][x].type.contains("finish")) {
+                    next = true;
+                } else if (prex != x + 1 && x + 1 < w && tile[y][x].IsConnectedTo(tile[y][x + 1])) {
+                    prex = x;
+                    prey = y;
+                    x++;
+                } else if (prey != y + 1 && y + 1 < h && tile[y][x].IsConnectedTo(tile[y + 1][x])) {
+                    prex = x;
+                    prey = y;
+                    y++;
+                } else if (prex != x - 1 && x - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y][x - 1])) {
+                    prex = x;
+                    prey = y;
+                    x--;
+                } else if (prey != y - 1 && y - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y - 1][x])) {
+                    prex = x;
+                    prey = y;
+                    y--;
+                } else {
+                    return false;
+                }
             }
         }
+        return true;
     }
 
     private void GoToMenu() {
@@ -471,14 +480,15 @@ public class Board extends JFrame {
                 new File("src/player/PlayerData.txt").delete();
                 if (player.getLevel() < nextLevel) {
                     player.setLevel(nextLevel);
-                    player.addToScore(nextLevel*15/time);
+                    player.addToScore(nextLevel * 15 / time);
                 }
                 PlayersRanking newrank = new PlayersRanking();
                 for (Player hum : ranking) {
-                    if (hum.getId() == player.getId())
+                    if (hum.getId() == player.getId()) {
                         newrank.addSort(player);
-                    else
+                    } else {
                         newrank.addSort(hum);
+                    }
                 }
                 Saves.writePlayersToFile(newrank, "src/player/PlayerData.txt");
             } catch (IOException err) {
