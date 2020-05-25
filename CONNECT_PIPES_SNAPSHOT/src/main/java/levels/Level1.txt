@@ -1,0 +1,5 @@
+0 4
+empty empty empty empty empty
+finishR empty full empty startL
+empty empty pipeLR empty empty
+empty empty empty empty empty
