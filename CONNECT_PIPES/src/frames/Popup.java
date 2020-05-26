@@ -11,10 +11,12 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import static javax.swing.SwingConstants.CENTER;
 import menu.Menu;
 import menu.MenuGUI;
+import static player.ActiveUser.saveActivePlayer;
 import player.Player;
 import player.PlayersRanking;
 import player.Saves;
@@ -37,7 +39,11 @@ public class Popup extends JFrame {
         south = new JPanel();
         buttonHandler = new CloseWhenClicked();
         text = new JLabel(s);
-        text.setPreferredSize(new Dimension(300, 100));
+        int dif = 0;
+        if (s.length() > 50) {
+            dif = 100;
+        }
+        text.setPreferredSize(new Dimension(300 + dif, 100 + dif));
         text.setHorizontalAlignment(CENTER);
         text.setBackground(Color.YELLOW);
         text.setOpaque(true);
@@ -51,7 +57,7 @@ public class Popup extends JFrame {
         getContentPane().add(main, BorderLayout.NORTH);
         getContentPane().add(south, BorderLayout.SOUTH);
         setAlwaysOnTop(true);
-        setSize(400, 200);
+        setSize(400 + dif, 200 + dif);
         setResizable(false);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -89,7 +95,7 @@ public class Popup extends JFrame {
         level = b;
         setVisible(true);
     }
-
+    
     public void ConfirmSave() {
         addNo("Yes", "No");
         yes.removeActionListener(buttonHandler);
@@ -135,9 +141,9 @@ public class Popup extends JFrame {
                     }
                     ranking.addSort(me);
                     Saves.writePlayersToFile(ranking, "src/player/PlayerData.txt");
+                    saveActivePlayer(me);
                     MenuGUI cur = new MenuGUI();
                     cur.setVisible(true);
-                    cur.p = me;
                 } catch (IOException err) {
                     return;
                 }

@@ -1,6 +1,8 @@
 package board;
 
+import static board.BoardLogic.CheckIfFinished;
 import frames.Popup;
+import generator.Generator;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
@@ -14,6 +16,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import static javax.swing.SwingConstants.CENTER;
 import menu.MenuGUI;
+import static player.ActiveUser.loadActivePlayer;
+import static player.ActiveUser.loadPreviousScore;
 import player.Player;
 import player.PlayersRanking;
 import player.Saves;
@@ -27,26 +31,29 @@ public class Board extends JFrame {
     Types type;
     int[] pipecount;    //how many pipes are available (pipe, turn)
     private int time = 0;       //how long it took to solve the level
-    public Player player;
     private int nextLevel;
+    private boolean endless = false;
+    public boolean viewOnly = false;
+    private Generator gen;
 
     private JPanel grid;
     private JPanel select;
     private JPanel menu;
     private JLabel[] labels;
-
+    private JLabel scoreCount;
     private JButton[][] squares;
-
-    //letters symbolise where the pipe connects; LR = left right, LD = left down
-    //letters are sorted alphabetically
     ButtonHandler buttonHandler = new ButtonHandler();
 
+    public void setGenerator(Generator g) {
+        gen = g;
+    }
+    
     private void LoadLevel(String f) {
         try {
             File in = new File(f);
             Scanner sc = new Scanner(in);
             String tmp = null;
-            pipecount = new int[2];
+            pipecount = new int[3];
             pipecount[0] = sc.nextInt();
             if (sc.hasNextInt()) {
                 pipecount[1] = sc.nextInt();
@@ -54,12 +61,50 @@ public class Board extends JFrame {
                 pipecount[1] = 0;
             }
             if (sc.hasNextInt()) {
+                pipecount[2] = sc.nextInt();
+            } else {
+                pipecount[2] = 0;
+            }
+            if (sc.hasNextInt()) {
                 time = sc.nextInt();
             }
-            if (in.getAbsolutePath().contains("src\\levels\\")) {
+            if (in.getAbsolutePath().contains("src\\levels\\") && !in.getName().contains("rand")) {
                 nextLevel = in.getName().charAt(5) - '0' + 1;
-            } else {
-                nextLevel = sc.nextInt();
+                String text = "";
+                switch (nextLevel - 1) {
+                    case 1: text = "<html>The most straightforward pipe in the game is the straight pipe!"
+                            + " Depending on its orientation, it connects pipes to its left and right, or"
+                            + " above and below it.<br>"
+                            + " Select the pipe you wish to place on the right, and click on the field to place it."
+                            + " To rotate a pipe, click on it again. To remove a pipe, select the eraser icon on"
+                            + " the right and click on the pipe you want to remove. Connect the fish to the"
+                            + " empty aquarium to beat the level!</html>"; break;
+                    case 2: text = "<html>The second type of pipe is the turning pipe. It connects two pipes"
+                            + " based on the direction it is currently facing. These pipes can lead to some very"
+                            + " tricky level setups!</html>"; break;
+                    case 3: text = "<html>The last type of pipe in the game is the teleporter pipe."
+                            + " It is very similar to the regular straight pipe, but with one major difference."
+                            + " A teleporter pipe connects to normal pipes the same way as others, but it also"
+                            + " has a portal on one of its sides. This portal connects to ANY portal facing its direction."
+                            + " The portal cannot however change the direction of traversal. If a portal faces"
+                            + " upwards, after traveling through another portal it must still travel upwards."
+                            + " Note: The portal can connect to any portal. If there are two portals it could"
+                            + " connect to, it will connect to them both. The fish will pick the path that leads"
+                            + " to the aquarium."
+                            + " It may seem that these pipes are always better than straight ones, but teleporter"
+                            + " pipes need at least two spaces between pipes to connect them."
+                            + " The straight pipe can connect two pipes even if the space between them is one.</html>"; break;
+                    case 4: text = "<html>This level introduces the final concept of this game: multiple aquariums!"
+                            + " If all you had to do was connect one fish to its aquarium, the game would be pretty"
+                            + " simple, don't you think? In this level, you must connect both fish to an empty aquarium."
+                            + " Note that you decide which aquarium is optimal for which fish! Good luck!</html>"; break;
+                    case 5: text = "<html>Now you know all there is to know about this game. This is the last level handcrafted"
+                            + " by me for you so you get used to the concepts. Once you feel acustomed, go ahead and try"
+                            + " endless mode, where time will be ticking down, and once the clock runs out, you must start again!"
+                            + " The levels generated will be getting harder and harder, and your score will be compared to"
+                            + " that of other players in the leaderboard. Can you be the best at connecting pipes?";
+                }
+                new Popup(text).setVisible(true);
             }
             sc.nextLine();
             while (sc.hasNext()) {
@@ -101,7 +146,7 @@ public class Board extends JFrame {
             file.createNewFile();
             FileWriter save = new FileWriter(file.getAbsoluteFile());
             PrintWriter pw = new PrintWriter(save);
-            pw.print(labels[0].getText() + " " + labels[1].getText() + " " + time + " " + nextLevel + "\n");
+            pw.print(labels[0].getText() + " " + labels[1].getText() + " " + labels[2].getText() + " " + time + " " + nextLevel + "\n");
             for (int i = 0; i < h; i++) {
                 for (int j = 0; j < w; j++) {
                     pw.print(type.type[set[i][j]] + " ");
@@ -141,12 +186,27 @@ public class Board extends JFrame {
     String timeString;
     Timer timer;
 
-    private JLabel initTimer() {
+    private void close() {
+        this.dispose();
+    }
+
+    private JLabel initTimer(boolean countDown) {
         JLabel Stopwatch = initLabel("0");
         timer = new Timer(true);
+        int advance = countDown ? -1 : 1;
         TimerTask task = new TimerTask() {
+            @Override
             public void run() {
-                time++;
+                time += advance;
+                if (time < 0) {
+                    close();
+                    gen.showSol();
+                    saveScore(true);
+                    MenuGUI men = new MenuGUI();
+                    men.setVisible(true);
+                    men.setAlwaysOnTop(false);
+                    timer.cancel();
+                }
                 int minutes = time / 60;
                 int seconds = time % 60;
 
@@ -166,6 +226,11 @@ public class Board extends JFrame {
                     timeString = (minutes + ":" + seconds);
                 }
                 Stopwatch.setText(timeString);
+                if (time < 10 && time % 2 == 1 && advance == -1) {
+                    Stopwatch.setBackground(Color.RED);
+                } else {
+                    Stopwatch.setBackground(Color.WHITE);
+                }
             }
         };
         timer.scheduleAtFixedRate(task, 0, 1000);
@@ -182,10 +247,16 @@ public class Board extends JFrame {
             }
         }
     }
-
+    
     public Board(String f) {
         super("Pipe Game");
         type = new Types();
+        if (f.equals("src/levels/rand.txt")) {
+            endless = true;
+        } else if (f.equals("src/levels/randSol.txt")) {
+            endless = true;
+            viewOnly = true;
+        }
         LoadLevel(f);
         GenerateTiles();
         squares = new JButton[h + 1][w + 1];
@@ -205,31 +276,52 @@ public class Board extends JFrame {
                 String name = null;
                 squares[i][j] = new JButton();
                 squares[i][j].setBackground(Color.WHITE);
-                squares[i][j].addActionListener(buttonHandler);
+                if (!viewOnly)
+                    squares[i][j].addActionListener(buttonHandler);
+                else if (i == h && j == 2)
+                    squares[i][j].addActionListener(new AbstractAction() {
+                        public void actionPerformed(ActionEvent e) {
+                            close();
+                        }
+                    });
+                else
+                    squares[i][j].addActionListener(new AbstractAction() {
+                        public void actionPerformed(ActionEvent e) {
+                            return;
+                        }
+                    });
                 squares[i][j].setPreferredSize(new Dimension(60, 60));
                 if (i == h) {
-                    menu.add(squares[i][j]);
-                    squares[i][j].setPreferredSize(new Dimension(0, 20));
-                    switch (j) {
-                        case 0:
-                            squares[i][j].setText("Save Game");
-                            break;
-                        case 1:
-                            menu.remove(squares[i][j]);
-                            menu.add(initTimer());
-                            break;
-                        case 2:
-                            squares[i][j].setText("Quit to menu");
-                            j = w;
+                    if (j == 0 && endless) {
+                        scoreCount = initLabel("Your score: " + loadActivePlayer().getScore());
+                        menu.add(scoreCount);
+                    } else {
+                        menu.add(squares[i][j]);
+                        squares[i][j].setPreferredSize(new Dimension(0, 20));
+                        switch (j) {
+                            case 0:
+                                squares[i][j].setText("Save Game");
+                                break;
+                            case 1:
+                                menu.remove(squares[i][j]);
+                                if (!viewOnly)
+                                    menu.add(initTimer(endless));
+                                else
+                                    menu.add(initLabel("The solution"));
+                                break;
+                            case 2:
+                                squares[i][j].setText("Quit to menu");
+                                j = w;
+                        }
                     }
                     continue;
                 } else if (j < w) {
                     grid.add(squares[i][j]);
                     name = type.type[set[i][j]];
                 } else if (j == w) {
-                    if (i == 2) {
+                    if (i == 3) {
                         labels[i] = initLabel(Character.toString('X'));
-                    } else if (i < 2) {
+                    } else if (i < 3) {
                         labels[i] = initLabel(Integer.toString(pipecount[i]));
                     } else {
                         labels[i] = initLabel(null);
@@ -250,6 +342,9 @@ public class Board extends JFrame {
                             name = "1turnLU";
                             break;
                         case 2:
+                            name = "1teleD";
+                            break;
+                        case 3:
                             name = "eraser";
                     }
                 }
@@ -269,69 +364,10 @@ public class Board extends JFrame {
         pack();
     }
 
-    private int[][] ScanBoard() {
-        int[][] tmp = new int[4][2];
-        int cur = 0;
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                if (tile[i][j].type.contains("start")) {
-                    tmp[cur][0] = j;
-                    tmp[cur][1] = i;
-                    cur++;
-                }
-            }
-        }
-        return tmp;
-    }
-
-    private boolean CheckIfFinished() {
-        var start = ScanBoard();
-        int prex = -1, prey = -1;
-        if (start == null) {
-            System.out.println("Error. This level doesn't have a start!");
-            return false;
-        }
-        for (int[] point : start) {
-            int x = point[0], y = point[1];
-            int error = 0;
-            boolean next = false;
-            while (!next) {
-                error++;
-                if (error > 50) {
-                    System.out.println("Zapobiegam nieskończonej pętli.");
-                    return false;
-                }
-                if (tile[y][x].type.contains("finish")) {
-                    next = true;
-                } else if (prex != x + 1 && x + 1 < w && tile[y][x].IsConnectedTo(tile[y][x + 1])) {
-                    prex = x;
-                    prey = y;
-                    x++;
-                } else if (prey != y + 1 && y + 1 < h && tile[y][x].IsConnectedTo(tile[y + 1][x])) {
-                    prex = x;
-                    prey = y;
-                    y++;
-                } else if (prex != x - 1 && x - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y][x - 1])) {
-                    prex = x;
-                    prey = y;
-                    x--;
-                } else if (prey != y - 1 && y - 1 >= 0 && tile[y][x].IsConnectedTo(tile[y - 1][x])) {
-                    prex = x;
-                    prey = y;
-                    y--;
-                } else {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     private void GoToMenu() {
         this.dispose();
         MenuGUI l = new menu.MenuGUI();
         l.setVisible(true);
-        l.p = player;
     }
 
     private void Rotate(Tile t) {
@@ -354,6 +390,18 @@ public class Board extends JFrame {
                 break;
             case "1turnDR":
                 s = "1turnDL";
+                break;
+            case "1teleD":
+                s = "1teleL";
+                break;
+            case "1teleL":
+                s = "1teleU";
+                break;
+            case "1teleU":
+                s = "1teleR";
+                break;
+            case "1teleR":
+                s = "1teleD";
         }
         int x = t.x, y = t.y;
         t = new Tile(s);
@@ -370,6 +418,7 @@ public class Board extends JFrame {
 
     private class ButtonHandler implements ActionListener {
 
+        @Override
         public void actionPerformed(ActionEvent e) {
             Object source = e.getSource();
             for (int i = 0; i < h + 1; i++) {
@@ -379,6 +428,11 @@ public class Board extends JFrame {
                             if (j == 0) {
                                 new Popup("What should the savefile be called?").SavePopup(ReturnBoard());
                             } else {
+                                timer.cancel();
+                                if (endless && !viewOnly) {
+                                    //new Popup("Your score: " + loadActivePlayer().getScore()).setVisible(true);
+                                    saveScore(true);
+                                }
                                 GoToMenu();
                             }
                             return;
@@ -398,6 +452,9 @@ public class Board extends JFrame {
                                                 now = type.GetIndex("1turnLU");
                                                 break;
                                             case 2:
+                                                now = type.GetIndex("1teleD");
+                                                break;
+                                            case 3:
                                                 now = type.GetIndex("eraser");
                                                 break;
                                             default:
@@ -442,6 +499,39 @@ public class Board extends JFrame {
         } else {
             squares[1][w].setIcon(ChooseIcon("1turnLU"));
         }
+
+        if (pipecount[2] == 0) {
+            squares[2][w].setIcon(null);
+        } else {
+            squares[2][w].setIcon(ChooseIcon("1teleD"));
+        }
+    }
+
+    private void saveScore(boolean finished) {
+        try {
+            PlayersRanking ranking = Saves.readPlayersFromFile("src/player/PlayerData.txt");
+            Player me = loadActivePlayer();
+            if (me.getLevel() < nextLevel && !endless) {
+                me.setLevel(nextLevel);
+            }
+            if (endless && !viewOnly) {
+                me.addToScore(finished ? 0 : time + gen.getLevel()*10);
+            }
+            if (finished && loadPreviousScore() > me.getScore()) {
+                me.setScore(loadPreviousScore());
+            }
+            PlayersRanking newrank = new PlayersRanking();
+            for (Player p : ranking) {
+                if (p.getId() == me.getId()) {
+                    newrank.addSort(me);
+                } else {
+                    newrank.addSort(p);
+                }
+            }
+            Saves.writePlayersToFile(newrank, "src/player/PlayerData.txt");
+        } catch (IOException err) {
+            return;
+        }
     }
 
     private void processClick(int i, int j) {
@@ -450,56 +540,49 @@ public class Board extends JFrame {
                 pipecount[0]++;
             } else if (tile[i][j].type.contains("turn")) {
                 pipecount[1]++;
+            } else if (tile[i][j].type.contains("tele")) {
+                pipecount[2]++;
             }
             updateSet("empty", i, j);
         }
-        labels[0].setText(Integer.toString(pipecount[0]));
-        labels[1].setText(Integer.toString(pipecount[1]));
+        for (int tmp = 0; tmp < pipecount.length; tmp++) {
+            labels[tmp].setText(Integer.toString(pipecount[tmp]));
+        }
         checkIfNull();
 
         if (tile[i][j].type.charAt(0) == '1' && now != type.GetIndex("eraser")) {
             Rotate(tile[i][j]);
         } else if (set[i][j] == type.GetIndex("empty") && now != type.GetIndex("empty")) {
+            int tmp;
             if (pipecount[0] > 0 && type.type[now].contains("pipe")) {
-                pipecount[0]--;
-                labels[0].setText(Integer.toString(pipecount[0]));
+                tmp = 0;
             } else if (pipecount[1] > 0 && type.type[now].contains("turn")) {
-                pipecount[1]--;
-                labels[1].setText(Integer.toString(pipecount[1]));
+                tmp = 1;
+            } else if (pipecount[2] > 0 && type.type[now].contains("tele")) {
+                tmp = 2;
             } else {
                 return;
+            }
+            if (tmp != -1) {
+                pipecount[tmp]--;
+                labels[tmp].setText(Integer.toString(pipecount[tmp]));
             }
             updateSet(type.type[now], i, j);
         }
         checkIfNull();
 
-        if (CheckIfFinished()) {
+        if (CheckIfFinished(tile)) {
             timer.cancel();
-            try {
-                PlayersRanking ranking = Saves.readPlayersFromFile("src/player/PlayerData.txt");
-                new File("src/player/PlayerData.txt").delete();
-                if (player.getLevel() < nextLevel) {
-                    player.setLevel(nextLevel);
-                    player.addToScore(nextLevel * 15 / time);
-                }
-                PlayersRanking newrank = new PlayersRanking();
-                for (Player hum : ranking) {
-                    if (hum.getId() == player.getId()) {
-                        newrank.addSort(player);
-                    } else {
-                        newrank.addSort(hum);
-                    }
-                }
-                Saves.writePlayersToFile(newrank, "src/player/PlayerData.txt");
-            } catch (IOException err) {
-                return;
+            saveScore(false);
+            if (endless) {
+                gen = new Generator(false);
+            } else {
+                frames.Scrollable menu = new frames.Scrollable();
+                menu.loadSaves(true);
+                Popup tmp = new Popup("Congratulations! You have completed the level!");
+                tmp.setVisible(true);
+                tmp.setAlwaysOnTop(true);
             }
-            frames.Scrollable menu = new frames.Scrollable();
-            menu.pl = player;
-            menu.loadSaves(true);
-            Popup tmp = new Popup("Congratulations! You have completed the level!");
-            tmp.setVisible(true);
-            tmp.setAlwaysOnTop(true);
             this.dispose();
         }
     }

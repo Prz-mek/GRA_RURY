@@ -1,5 +1,5 @@
-0 4
+3
 empty empty empty empty empty
-finishR empty full empty startL
-empty empty pipeLR empty empty
+finishR empty empty empty startL
+empty empty empty empty empty
 empty empty empty empty empty

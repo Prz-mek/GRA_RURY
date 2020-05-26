@@ -1,9 +1,9 @@
-9 15
-finishR empty empty empty empty empty startD empty
+2 10 4
+finishR empty empty empty finishD empty startD empty
 empty empty empty full empty empty empty empty
-empty full full empty empty empty empty empty
+empty full startR empty empty empty empty empty
 empty empty empty empty full empty empty empty
 empty full full empty empty empty finishU empty
-full empty empty empty full full full full
+full finishR empty empty full full full full
 empty empty empty full empty empty empty empty
-empty empty empty empty empty empty empty startU
+startR empty empty empty empty empty empty startU

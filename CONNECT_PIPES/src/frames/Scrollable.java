@@ -17,12 +17,12 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER;
 import static javax.swing.SwingConstants.CENTER;
-import javax.swing.border.Border;
-import menu.LevelLow;
 import menu.Menu;
 import menu.MenuGUI;
-import menu.NoSaves;
+import static player.ActiveUser.loadActivePlayer;
+import static player.ActiveUser.saveActivePlayer;
 import player.Player;
 import player.PlayersRanking;
 import player.Saves;
@@ -37,7 +37,6 @@ public class Scrollable extends JFrame {
     private ButtonHandler buttonHandler;
     private JScrollPane list;
     private String type;
-    public Player pl;
 
     public Scrollable() {
         main = new JPanel();
@@ -70,6 +69,7 @@ public class Scrollable extends JFrame {
 
     public void loadScores() {
         try {
+            list.setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
             buttons = new JButton[1];
             PlayersRanking ranking = Saves.readPlayersFromFile("src/player/PlayerData.txt");
             main.setLayout(new GridLayout(0, 2));
@@ -83,12 +83,14 @@ public class Scrollable extends JFrame {
             main.add(tmp2);
             for (Player p : ranking) {
                 JLabel tmp = new JLabel(p.getNick());
+                tmp.setPreferredSize(new Dimension(100, 50));
                 tmp.setBackground(Color.CYAN);
                 tmp.setOpaque(true);
                 tmp.setBorder(BorderFactory.createLineBorder(Color.BLACK));
                 tmp.setHorizontalAlignment(CENTER);
                 main.add(tmp);
                 JLabel tmp0 = new JLabel(Integer.toString(p.getScore()));
+                tmp0.setPreferredSize(new Dimension(100, 50));
                 tmp0.setBackground(Color.CYAN);
                 tmp0.setOpaque(true);
                 tmp0.setBorder(tmp.getBorder());
@@ -113,20 +115,20 @@ public class Scrollable extends JFrame {
         if (loads.length == 0 && levels == false) {
             MenuGUI it = new MenuGUI();
             it.setVisible(true);
-            it.p = pl;
-            NoSaves le = new NoSaves();
+            Popup le = new Popup("There are no saves to load!");
             le.setVisible(true);
             le.setAlwaysOnTop(true);
             close();
             return;
         }
         type = levels ? "level" : "save";
-        buttons = new JButton[loads.length];
-        for (int i = 0; i < loads.length; i++) {
+        int len = type.equals("level") ? 5 : loads.length;
+        buttons = new JButton[len];
+        for (int i = 0; i < len; i++) {
             buttons[i] = new JButton(Types.GetName(loads[i]));
             buttons[i].addActionListener(buttonHandler);
             buttons[i].setPreferredSize(new Dimension(200, 50));
-            if (levels && pl.getLevel() < Types.GetName(loads[i]).charAt(5) - '0')
+            if (levels && loadActivePlayer().getLevel() < Types.GetName(loads[i]).charAt(5) - '0')
                 buttons[i].setBackground(Color.GRAY);
             else
                 buttons[i].setBackground(Color.CYAN);
@@ -196,31 +198,29 @@ public class Scrollable extends JFrame {
                 if (j == source) {
                     switch (type) {
                         case "save":
-                            Board tmp2 = new Board(new File("src/saves/").listFiles()[i].getPath());
-                            tmp2.player = pl;
+                            new Board(new File("src/saves/").listFiles()[i].getPath());
                             break;
                         case "player":
                             try {
                             PlayersRanking ranking = Saves.readPlayersFromFile("src/player/PlayerData.txt");
-                            for (Player mate : ranking) {
-                                if (mate.getNick().equals(j.getText())) {
-                                    pl = mate;
+                            for (Player p : ranking) {
+                                if (p.getNick().equals(j.getText())) {
+                                    saveActivePlayer(p);
+                                    break;
                                 }
                             }
                             MenuGUI m = new MenuGUI();
                             m.setVisible(true);
-                            m.p = pl;
                         } catch (IOException err) {
                             return;
                         }
                         break;
                         case "level":
-                            if (pl.getLevel() < i + 1) {
-                                new LevelLow().setVisible(true);
+                            if (loadActivePlayer().getLevel() < i + 1) {
+                                new Popup("Your level is too low!").setVisible(true);
                                 return;
                             }
-                            Board tmp3 = new Board(new File("src/levels/").listFiles()[i].getPath());
-                            tmp3.player = pl;
+                            new Board(new File("src/levels/").listFiles()[i].getPath());
                     }
                 } else {
                     i++;
@@ -229,7 +229,6 @@ public class Scrollable extends JFrame {
             if (source == cancel) {
                 MenuGUI men = new MenuGUI();
                 men.setVisible(true);
-                men.p = pl;
             }
             close();
         }

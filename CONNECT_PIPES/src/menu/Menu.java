@@ -6,6 +6,10 @@
 package menu;
 
 import frames.Scrollable;
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -17,6 +21,12 @@ public class Menu extends javax.swing.JFrame {
      * Creates new form Player
      */
     public Menu() {
+        File tmp = new File("src/player/PlayerData.txt");
+        if (!tmp.exists())
+            try {
+                tmp.createNewFile();
+            } catch (IOException ex) {
+            }
         initComponents();
     }
 

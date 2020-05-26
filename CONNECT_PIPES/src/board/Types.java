@@ -4,7 +4,7 @@ import java.io.File;
 
 public class Types {  //these define types of tiles based on available icons
     
-    String[] type;
+    public String[] type;
     
     public Types() {
         int n = 0;

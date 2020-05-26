@@ -6,17 +6,15 @@
 package menu;
 
 import frames.Scrollable;
-import player.Player;
+import generator.Generator;
+import java.io.File;
+import player.ActiveUser;
 
 /**
  *
  * @author dominik
  */
 public class MenuGUI extends javax.swing.JFrame {
-    public Player p;
-    /**
-     * Creates new form MenuGUI
-     */
     public MenuGUI() {
         initComponents();
     }
@@ -36,10 +34,10 @@ public class MenuGUI extends javax.swing.JFrame {
         jButton4 = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         jButton5 = new javax.swing.JButton();
+        jButton6 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Main Menu");
-        setAlwaysOnTop(true);
         setBackground(new java.awt.Color(51, 255, 255));
         setBounds(new java.awt.Rectangle(0, 0, 900, 600));
         setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
@@ -48,7 +46,7 @@ public class MenuGUI extends javax.swing.JFrame {
         setSize(new java.awt.Dimension(900, 600));
 
         jButton1.setBackground(new java.awt.Color(102, 255, 255));
-        jButton1.setText("Select Level");
+        jButton1.setText("Tutorial levels");
         jButton1.setBorderPainted(false);
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -101,6 +99,15 @@ public class MenuGUI extends javax.swing.JFrame {
             }
         });
 
+        jButton6.setBackground(new java.awt.Color(102, 255, 255));
+        jButton6.setText("Endless mode");
+        jButton6.setBorderPainted(false);
+        jButton6.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton6ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -114,17 +121,20 @@ public class MenuGUI extends javax.swing.JFrame {
                         .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jButton6, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addGap(226, 226, 226))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(117, 117, 117)
+                .addGap(63, 63, 63)
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(12, 12, 12)
                 .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -142,6 +152,10 @@ public class MenuGUI extends javax.swing.JFrame {
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         // TODO add your handling code here:
         this.dispose();
+        new File("src/player/active.txt").delete();
+        new File("src/levels/rand.txt").delete();
+        new File("src/levels/randSol.txt").delete();
+        System.exit(0);
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
@@ -152,7 +166,6 @@ public class MenuGUI extends javax.swing.JFrame {
         // TODO add your handling code here:
         this.dispose();
         Scrollable l = new Scrollable();
-        l.pl = p;
         l.loadSaves(true);
         l.setVisible(true);
     }//GEN-LAST:event_jButton1ActionPerformed
@@ -160,7 +173,6 @@ public class MenuGUI extends javax.swing.JFrame {
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         this.dispose();
         Scrollable l = new frames.Scrollable();
-        l.pl = p;
         l.loadSaves(false);
     }//GEN-LAST:event_jButton3ActionPerformed
 
@@ -169,12 +181,21 @@ public class MenuGUI extends javax.swing.JFrame {
         this.dispose();
         new Menu().setVisible(true);
     }//GEN-LAST:event_jButton5ActionPerformed
+
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
+        this.dispose();
+        ActiveUser.saveActivePlayer(ActiveUser.loadActivePlayer());
+        ActiveUser.setScoreToZero();
+        Generator gen = new Generator(true);
+    }//GEN-LAST:event_jButton6ActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton6;
     private javax.swing.JLabel jLabel1;
     // End of variables declaration//GEN-END:variables
 }

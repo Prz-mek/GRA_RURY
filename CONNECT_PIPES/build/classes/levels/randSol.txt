@@ -1,0 +1,9 @@
+6 10 12 54 6
+finishR 1turnDL full empty full empty full full empty 
+full 1teleU 1turnDR 1teleL empty empty empty 1teleR 1turnDL 
+1turnDR 1teleL 1teleU full 1teleR finishL finishD full 1pipeDU 
+1turnRU 1turnDL empty empty empty empty 1teleU empty 1pipeDU 
+empty 1turnRU 1pipeLR 1pipeLR startL empty empty empty finishU 
+empty empty 1teleD full empty empty full empty empty 
+empty 1teleD 1turnRU 1pipeLR startL empty 1teleD empty empty 
+empty 1turnRU 1teleL empty 1teleR startL 1turnRU 1pipeLR startL 
